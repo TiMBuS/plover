@@ -64,6 +64,11 @@ class Stenotype(StenotypeBase):
         self.suppress_keyboard(True)
         self._down_keys = set()
         self._released_keys = set()
+        self._toggle_down = set()
+        self._toggle_keys = [
+            'KEY_LEFTCTRL', 'KEY_RIGHTCTRL', 'KEY_LEFTALT',
+            'KEY_RIGHTALT', 'KEY_LEFTMETA', 'KEY_RIGHTMETA',
+        ]
 
     def start_capture(self):
         """Begin listening for output from the stenotype machine."""
@@ -80,26 +85,41 @@ class Stenotype(StenotypeBase):
     def _key_down(self, event):
         # Called when a key is pressed.
 
-        #Check if we have a modifier key
+        #Toggle the machine off when we are pressing a modifier. I want my ctrl-c
+        if event.keystring in self._toggle_keys and not self._down_keys:
+            self._toggle_down.add(event.keystring)
+        if self._toggle_down and not self._down_keys:
+            self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+            return
+
+        #Check if we have a non-input key
         if event.keystring.startswith( "KEY_" ):
             if not self._down_keys:
                 #Re-emit it.
                 self._keyboard_emulation._send_keycodes([[event.code, event.value]])
-        else:
-            if (self._is_keyboard_suppressed and event.keystring is not None
-                and not self._keyboard_capture.is_keyboard_suppressed()):
-                self._keyboard_emulation.send_backspaces(1)
+                return
 
-            self._down_keys.add(event.keystring)
+        if (self._is_keyboard_suppressed and event.keystring is not None
+            and not self._keyboard_capture.is_keyboard_suppressed()):
+            self._keyboard_emulation.send_backspaces(1)
+
+        self._down_keys.add(event.keystring)
 
     def _key_up(self, event):
         # Called when a key is released.
 
-        #Check if we have a modifier key
+        if event.keystring in self._toggle_keys and not self._down_keys:
+            self._toggle_down.remove(event.keystring)
+        if self._toggle_down and not self._down_keys:
+            self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+            return
+
+        #Check if we have a non-input key
         if event.keystring.startswith( "KEY_" ):
             if not self._down_keys:
                 #Re-emit it.
                 self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+                return
 
         # Remove invalid released keys.
         self._released_keys = self._released_keys.intersection(self._down_keys)
