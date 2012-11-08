@@ -79,13 +79,28 @@ class Stenotype(StenotypeBase):
 
     def _key_down(self, event):
         # Called when a key is pressed.
-        if (self._is_keyboard_suppressed and event.keystring is not None
-            and not self._keyboard_capture.is_keyboard_suppressed()):
-            self._keyboard_emulation.send_backspaces(1)
-        self._down_keys.add(event.keystring)
+
+        #Check if we have a modifier key
+        if event.keystring.startswith( "KEY_" ):
+            if not self._down_keys:
+                #Re-emit it.
+                self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+        else:
+            if (self._is_keyboard_suppressed and event.keystring is not None
+                and not self._keyboard_capture.is_keyboard_suppressed()):
+                self._keyboard_emulation.send_backspaces(1)
+
+            self._down_keys.add(event.keystring)
 
     def _key_up(self, event):
         # Called when a key is released.
+
+        #Check if we have a modifier key
+        if event.keystring.startswith( "KEY_" ):
+            if not self._down_keys:
+                #Re-emit it.
+                self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+
         # Remove invalid released keys.
         self._released_keys = self._released_keys.intersection(self._down_keys)
         # Process the newly released key.
