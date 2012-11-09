@@ -66,9 +66,13 @@ class Stenotype(StenotypeBase):
         self._released_keys = set()
         self._toggle_down = set()
         self._toggle_keys = [
-            'KEY_LEFTCTRL', 'KEY_RIGHTCTRL', 'KEY_LEFTALT',
-            'KEY_RIGHTALT', 'KEY_LEFTMETA', 'KEY_RIGHTMETA',
+            'KEY_LEFTCTRL',
+            'KEY_LEFTALT',   'KEY_RIGHTALT',
+            'KEY_LEFTMETA',  'KEY_RIGHTMETA',
+            'KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT',
         ]
+        self._toggle_switch = 'KEY_RIGHTCTRL'
+        self._toggle_i = 0
 
     def start_capture(self):
         """Begin listening for output from the stenotype machine."""
@@ -85,12 +89,16 @@ class Stenotype(StenotypeBase):
     def _key_down(self, event):
         # Called when a key is pressed.
 
+        if not self._down_keys:
         #Toggle the machine off when we are pressing a modifier. I want my ctrl-c
-        if event.keystring in self._toggle_keys and not self._down_keys:
-            self._toggle_down.add(event.keystring)
-        if self._toggle_down and not self._down_keys:
-            self._keyboard_emulation._send_keycodes([[event.code, event.value]])
-            return
+            if event.keystring == self._toggle_switch:
+                self._notify_toggle()
+
+            if event.keystring in self._toggle_keys:
+                self._toggle_down.add(event.keystring)
+            if self._toggle_down:
+                self._keyboard_emulation._send_keycodes([[event.code, event.value]])
+                return
 
         #Check if we have a non-input key
         if event.keystring.startswith( "KEY_" ):

@@ -158,6 +158,8 @@ class StenoEngine:
             self.translator.add_callback(self._log_translation)
 
         # Start the machine monitoring for steno strokes.
+        self.machine.add_notify_callback(
+            lambda: self.set_is_running(not self.is_running))
         self.machine.start_capture()
 
     def set_is_running(self, value):

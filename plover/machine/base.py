@@ -14,9 +14,10 @@ class StenotypeBase:
     # parameters to be passed to the constructor. This variable
     # advertises the class that contains such parameters.
     CONFIG_CLASS = None
-    
+
     def __init__(self):
         self.subscribers = []
+        self.toggle_subscribers = []
 
     def start_capture(self):
         """Begin listening for output from the stenotype machine."""
@@ -37,10 +38,25 @@ class StenotypeBase:
         """
         self.subscribers.append(callback)
 
+    def add_notify_callback(self, callback):
+        """Subscribe to output from the stenotype machine.
+
+        Argument:
+
+        callback -- The function to call whenever the machine's
+        toggle switch is hit. Usually used to uh, toggle it.
+
+        """
+        self.toggle_subscribers.append(callback)
+
     def _notify(self, steno_keys):
         """Invoke the callback of each subscriber with the given argument."""
         for callback in self.subscribers:
             callback(steno_keys)
+
+    def _notify_toggle(self):
+        for callback in self.toggle_subscribers:
+            callback()
 
 
 class SerialStenotypeBase(StenotypeBase, threading.Thread):
@@ -70,7 +86,7 @@ class SerialStenotypeBase(StenotypeBase, threading.Thread):
         threading.Thread.__init__(self)
         StenotypeBase.__init__(self)
         self.finished = threading.Event()
-        
+
     def run(self):
         """This method should be overridden by a subclass."""
         pass
